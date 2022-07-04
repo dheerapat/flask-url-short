@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 import json
 import os.path
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'secretyouonlyknow' # because we have to sent message in the app
@@ -21,8 +22,14 @@ def your_url():
         if request.form['code'] in urls.keys():
             flash('already taken, select another name')
             return redirect(url_for('home'))
-
-        urls[request.form['code']] = {'url':request.form['url']}
+        #if user click submit button it will check what is the key of the request whether it a url or file
+        if 'url' in request.form.keys():
+            urls[request.form['code']] = {'url':request.form['url']}
+        else:
+            f = request.files['file']
+            full_name = request.form['code'] + secure_filename(f.filename)
+            f.save('/home/dheerapat/Desktop/project/flask-url-short/' + full_name)
+            urls[request.form['code']] = {'file':full_name}
 
         with open('urls.json','w') as url_file:
             json.dump(urls, url_file)
