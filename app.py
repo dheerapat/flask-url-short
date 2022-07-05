@@ -28,7 +28,7 @@ def your_url():
         else:
             f = request.files['file']
             full_name = request.form['code'] + secure_filename(f.filename)
-            f.save('/home/dheerapat/Desktop/project/flask-url-short/' + full_name)
+            f.save('/home/dheerapat/Desktop/project/flask-url-short/static/user_file/' + full_name)
             urls[request.form['code']] = {'file':full_name}
 
         with open('urls.json','w') as url_file:
@@ -37,3 +37,16 @@ def your_url():
         return render_template('your_url.html', code = request.form['code'])
     else:
         return redirect(url_for('home')) # if http request is get request
+
+@app.route('/<string:code>')
+def redirect_to_url(code):
+    if os.path.exists('urls.json'):
+        with open('urls.json') as urls_file:
+            urls = json.load(urls_file)
+            #look for 'code' key in json file associate in route fn.
+            if code in urls.keys():
+                #each json key have dictionary as a value so we want to return that dictionary value out
+                if 'url' in urls[code].keys():
+                    return redirect(urls[code]['url'])
+                else:
+                    return redirect(url_for('static',filename='user_file/' + urls[code]['file']))
