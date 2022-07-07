@@ -1,16 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, abort, session
+from flask import render_template, request, redirect, url_for, flash, abort, session, jsonify, Blueprint
 import json
 import os.path
 from werkzeug.utils import secure_filename
 
-app = Flask(__name__)
-app.secret_key = 'secretyouonlyknow' # because we have to sent message in the app
+bp = Blueprint('urlshort', __name__)
 
-@app.route('/')
+@bp.route('/')
 def home():
     return render_template('home.html', codes = session.keys())
 
-@app.route('/your-url', methods=['GET','POST'])
+@bp.route('/your-url', methods=['GET','POST'])
 def your_url():
     if request.method == 'POST': # if http request is post request
         urls = {}
@@ -23,7 +22,7 @@ def your_url():
         #check if input name 'code' is a urls dict key
         if request.form['code'] in urls.keys():
             flash('already taken, select another name')
-            return redirect(url_for('home'))
+            return redirect(url_for('urlshort.home'))
 
         #if user click submit button it will check what is the key of the request whether it a url or file
         if 'url' in request.form.keys():
@@ -31,7 +30,7 @@ def your_url():
         else:
             f = request.files['file']
             full_name = request.form['code'] + secure_filename(f.filename)
-            f.save('/home/dheerapat/Desktop/project/flask-url-short/static/user_file/' + full_name)
+            f.save('/home/dheerapat/Desktop/project/flask-url-short/urlshort/static/user_file/' + full_name)
             urls[request.form['code']] = {'file':full_name}
 
         with open('urls.json','w') as url_file:
@@ -41,9 +40,9 @@ def your_url():
 
         return render_template('your_url.html', code = request.form['code'])
     else:
-        return redirect(url_for('home')) # if http request is get request
+        return redirect(url_for('urlshort.home')) # if http request is get request
 
-@app.route('/<string:code>')
+@bp.route('/<string:code>')
 def redirect_to_url(code):
     if os.path.exists('urls.json'):
         with open('urls.json') as urls_file:
@@ -57,6 +56,11 @@ def redirect_to_url(code):
                     return redirect(url_for('static',filename='user_file/' + urls[code]['file']))
     return abort(404)
 
-@app.errorhandler(404)
+@bp.errorhandler(404)
 def page_not_found(error):
     return render_template('page_not_found.html'), 404
+
+#add api route to return json data
+@bp.route('/api')
+def session_api():
+    return jsonify(list(session.keys()))
